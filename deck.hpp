@@ -57,20 +57,3 @@ tuple<string, string, int> drawCard(){
 
     return make_tuple(type, suit, score);
 }
-
-/*int main() {
-  string array[2] = {"One", "Two"};
-  cout << "Welcome to Blackjack!\n\n";
-
-  vector<tuple<string, string>> cards = getAllCards(4);
-
-  shuffleCards(cards);
-
-  string type = get<0>(cards[0]);
-  string suit = get<1>(cards[0]);
-  int score = cardScore(type);
-
-  cout << type << " " << suit << " (" << score << ") \n\n";
-
-  return 0;
-}*/

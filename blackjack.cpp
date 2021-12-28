@@ -1,5 +1,5 @@
 #include <iostream>
-#include "game.cpp"
+#include "game.hpp"
 using namespace std;
 
 string helpTxts[] = {"Type command to continue:",
@@ -10,6 +10,13 @@ string helpTxts[] = {"Type command to continue:",
                        "hit <game> <player> - take a card from the deck",
                        "stand <game> <player> - move onto guest player or end the game",
                        "show <game> - view game data and score"};
+
+void helpText(){
+    for (int i=0; i < (sizeof(helpTxts) / sizeof(*helpTxts)); ++i){
+        cout << helpTxts[i] << "\n";
+    }
+    cout << "\n";
+}
 
 string * parseCommand(string command){
 
@@ -43,19 +50,15 @@ string * parseCommand(string command){
     return parts;
 }
 
-void commandReceived(string command){
-    cout << "\nCommand received: " << command << "\n\n";
-}
-
 bool checkParams(string* parts, int num){
 
     if (num==1 && parts[1] == ""){
-        cout << "Game name parameter required";
+        cout << "Game name parameter required\n\n";
         return false;
     }
 
     if (num==2 && (parts[1] == "" || parts[2] == "")){
-        cout << "Game name and player parameters required";
+        cout << "Game name and player parameters required\n\n";
         return false;
     }
 
@@ -69,7 +72,10 @@ void processCommand(string command){
     string* parts = parseCommand(command);
     string action = parts[0];
 
-    if (action == "help") return commandReceived(command);
+    if (action == "help") {
+        helpText();
+        return;
+    }
     if (action == "new"){
         if (!checkParams(parts, 2)) return;
         game.createGame(parts[1], parts[2]);
@@ -80,19 +86,28 @@ void processCommand(string command){
         game.joinGame(parts[1], parts[2]);
         return;
     }
-    /*if (action == "delete"){
-        if (!checkParams(parts, 2)) return;
-        return game.delete(parts[0]);
-    }*/
+    if (action == "delete"){
+        if (!checkParams(parts, 1)) return;
+        game.deleteGame(parts[1]);
+        return;
+    }
     if (action == "hit"){
         if (!checkParams(parts, 2)) return;
         game.hit(parts[1], parts[2]);
         return;
     }
-    if (action == "stand") return commandReceived(command);
-    if (action == "show") return commandReceived(command);
+    if (action == "stand"){
+        if (!checkParams(parts, 2)) return;
+        game.stand(parts[1], parts[2]);
+        return;
+    }
+    if (action == "show"){
+        if (!checkParams(parts, 2)) return;
+        cout << "Command received: " << command << " not yet implemented!\n\n";
+        return;
+    }
 
-    cout << "\nInvalid command!! (" << action << ") Type help to view commands again!\n\n";
+    cout << "Invalid command!! Type help to view commands again!\n\n";
 }
 
 void commandLoop(){
@@ -102,16 +117,9 @@ void commandLoop(){
     commandLoop();
 }
 
-void helpText(){
-    for (int i=0; i < (sizeof(helpTxts) / sizeof(*helpTxts)); ++i){
-        cout << helpTxts[i] << "\n";
-    }
-    cout << "\n";
-}
-
 int main() {
-  cout << "Welcome to Blackjack!\n\n";
-  helpText();
-  commandLoop();
-  return 0;
+    cout << "Welcome to Blackjack!\n\n";
+    helpText();
+    commandLoop();
+    return 0;
 }
