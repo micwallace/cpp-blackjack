@@ -102,8 +102,8 @@ void processCommand(string command){
         return;
     }
     if (action == "show"){
-        if (!checkParams(parts, 2)) return;
-        cout << "Command received: " << command << " not yet implemented!\n\n";
+        if (!checkParams(parts, 1)) return;
+        game.showGame(parts[1]);
         return;
     }
 

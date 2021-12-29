@@ -25,12 +25,40 @@ namespace blackjack {
             return gameState[name];
         }
 
-        public: void printGame(string name){
-            json game = getGame(name);
+        // TODO: Print card array
+        public: void printScore(json game){
+            cout << "--- score ---\n";
+            cout << "Host: " << game["hostPlayer"].get<string>() << "\t" << "\t" << game["hostScore"].get<int>() << "\n";
+            cout << "Guest: " << game["guestPlayer"].get<string>() << "\t" << "\t" << game["guestScore"].get<int>() << "\n\n";
+        }
 
-            cout << "-------------- SCORE --------------\n";
-            cout << "Host:\t\t" << game["hostScore"].get<int>() << "\n";
-            cout << "Guest:\t\t" << game["guestScore"].get<int>() << "\n\n";
+        public: void printStatus(json game){
+
+            int hs = game["hostScore"].get<int>();
+            int gs = game["guestScore"].get<int>();
+
+            if (hs > 21){
+                cout << game["hostPlayer"].get<string>() << " is bust, " <<
+                        game["guestPlayer"].get<string>() << " has won the game!!";
+            } else if (gs > 21){
+                cout << game["guestPlayer"].get<string>() << " is bust, " <<
+                        game["hostPlayer"].get<string>() << " has won the game!!";
+            } else if (game["status"].get<std::string>() == "finished"){
+                if (hs > gs){
+                    cout << game["hostPlayer"].get<string>() << " has won the game!!";
+                } else if (gs < hs) {
+                    cout << game["guestPlayer"].get<string>() << " has won the game!!";
+                } else {
+                    cout << "The game is a tie!!";
+                }
+            } else {
+                if (game["turn"].get<string>() == "host"){
+                    cout << game["hostPlayer"].get<string>() << "'s turn...";
+                } else {
+                    cout << game["guestPlayer"].get<string>() << "'s turn...";
+                }
+            }
+            cout << "\n\n";
         }
 
         private: json getInitialState(string name, string hostName){
@@ -53,6 +81,9 @@ namespace blackjack {
                 return false;
             }
             gameState[name] = getInitialState(name, hostName);
+
+            cout << "Starting new game with name: " << name << "\n\n";
+
             return true;
         }
 
@@ -62,12 +93,20 @@ namespace blackjack {
                 return false;
             }
             if (gameState[name]["guestPlayer"] != ""){
-                cout << "Game already has a guest player!";
+                cout << "Game already has a guest player!\n\n";
+                return false;
+            }
+
+            if (gameState[name]["hostPlayer"] == guestName){
+                cout << "Host player has the same name, choose a different one!\n\n";
                 return false;
             }
 
             gameState[name]["guestPlayer"] = guestName;
             gameState[name]["status"] = "playing";
+
+            cout << "Player " << guestName << " has joined game " << name << "\n\n";
+
             return true;
         }
 
@@ -80,6 +119,20 @@ namespace blackjack {
             gameState.erase(name);
 
             cout << "Game successfully deleted!\n\n";
+
+            return true;
+        }
+
+        public: bool showGame(string name){
+            if (!gameExists(name)){
+                cout << "Game does not exist\n\n";
+                return false;
+            }
+            json game = getGame(name);
+            cout << game.dump() << "\n\n";
+            printScore(game);
+            printStatus(game);
+            return true;
         }
 
         private: bool isPlayersTurn(string name, string player){
@@ -89,14 +142,46 @@ namespace blackjack {
             return false;
         }
 
+        private: bool isGameFinished(json game){
+            if (game["status"] == "finished") return true;
+            return false;
+        }
+
+        private: int * getScoreAndAces(json cards){
+
+            static int sa[2];
+            sa[0] = 0;
+            sa[1] = 0;
+            string c;
+
+            for (json::iterator it = cards.begin(); it != cards.end(); ++it) {
+                json card = *it;
+                c = card[0].get<std::string>();
+                if (c == "Ace") sa[1]++;
+                sa[0] += cardScore(c);
+            }
+
+            return sa;
+        }
+
+        private: int getAceReducedScore(json cards){
+
+            int* sa = getScoreAndAces(cards);
+            int score = sa[0];
+            int aces = sa[1];
+
+            while (score > 21 && aces > 0){
+                score -= 10;
+                aces -= 1;
+            }
+
+            return score;
+        }
+
         public: bool hit(string name, string player){
 
             if (!gameExists(name)){
                 cout << "Game does not exist!\n\n";
-                return false;
-            }
-            if (!isPlayersTurn(name, player)){
-                cout << "Not your turn!\n\n";
                 return false;
             }
 
@@ -107,22 +192,38 @@ namespace blackjack {
                 return false;
             }
 
+            if (!isPlayersTurn(name, player)){
+                cout << "Not your turn!\n\n";
+                return false;
+            }
+
             tuple<string, string, int> card = drawCard();
             string type = get<0>(card);
             string suit = get<1>(card);
-            int score = get<2>(card);
-
-            // TODO: process ace score
+            int cScore = get<2>(card);
 
             string handKey = game["turn"].get<std::string>() + "Hand";
             string scoreKey = game["turn"].get<std::string>() + "Score";
 
-            gameState[name][handKey].push_back(json({type, suit}));
-            gameState[name][scoreKey] = score + game[scoreKey].get<int>();
+            int score = cScore + game[scoreKey].get<int>();
 
-            cout << type << " " << suit << " (" << score << ") \n\n";
+            json curHand = game[handKey];
+            curHand.push_back(json({type, suit}));
 
-            printGame(name);
+            if (score > 21)
+                score = getAceReducedScore(curHand);
+
+            gameState[name][handKey] = curHand;
+            gameState[name][scoreKey] = score;
+
+            if (score > 21)
+                gameState[name]["status"] = "finished";
+
+            cout << "Card drawn: " << type << " " << suit << " (" << cScore << ") \n\n";
+
+            printScore(gameState[name]);
+
+            printStatus(gameState[name]);
 
             return true;
         }
@@ -139,6 +240,16 @@ namespace blackjack {
             }
 
             json game = getGame(name);
+
+            if (game["turn"] == "host"){
+                gameState[name]["turn"] = "guest";
+            } else {
+                gameState[name]["status"] = "finished";
+            }
+
+            printScore(gameState[name]);
+
+            printStatus(gameState[name]);
 
             return true;
         }
