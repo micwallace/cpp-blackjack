@@ -46,7 +46,7 @@ namespace blackjack {
             } else if (game["status"].get<std::string>() == "finished"){
                 if (hs > gs){
                     cout << game["hostPlayer"].get<string>() << " has won the game!!";
-                } else if (gs < hs) {
+                } else if (gs > hs) {
                     cout << game["guestPlayer"].get<string>() << " has won the game!!";
                 } else {
                     cout << "The game is a tie!!";
@@ -197,6 +197,11 @@ namespace blackjack {
                 return false;
             }
 
+            if (game["status"].get<std::string>() == "finished"){
+                cout << "Game Over!\n\n";
+                return false;
+            }
+
             tuple<string, string, int> card = drawCard();
             string type = get<0>(card);
             string suit = get<1>(card);
@@ -240,6 +245,11 @@ namespace blackjack {
             }
 
             json game = getGame(name);
+
+            if (game["status"].get<std::string>() == "finished"){
+                cout << "Game Over!\n\n";
+                return false;
+            }
 
             if (game["turn"] == "host"){
                 gameState[name]["turn"] = "guest";
